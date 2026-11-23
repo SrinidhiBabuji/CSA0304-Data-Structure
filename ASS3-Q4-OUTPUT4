@@ -1,0 +1,145 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#define RED 1
+
+#define BLACK 0
+
+ 
+
+typedef struct Node {
+
+    int key, color;
+
+    struct Node *left, *right, *parent;
+
+} Node;
+
+Node *NIL, *root;
+
+Node *new_node(int k) {
+
+    Node *z = malloc(sizeof *z);
+
+    if (!z) { perror("malloc"); exit(1); }
+
+    z->key=k; z->color=RED; z->left=z->right=z->parent=NIL; return z;
+
+}
+
+void left_rotate(Node *x) {
+
+    Node *y=x->right; x->right=y->left;
+
+    if (y->left!=NIL) y->left->parent=x;
+
+    y->parent=x->parent;
+
+    if (x->parent==NIL) root=y;
+
+    else if (x==x->parent->left) x->parent->left=y; else x->parent->right=y;
+
+    y->left=x; x->parent=y;
+
+}
+
+void right_rotate(Node *y) {
+
+    Node *x=y->left; y->left=x->right;
+
+    if (x->right!=NIL) x->right->parent=y;
+
+    x->parent=y->parent;
+
+    if (y->parent==NIL) root=x;
+
+    else if (y==y->parent->right) y->parent->right=x; else y->parent->left=x;
+
+    x->right=y; y->parent=x;
+
+}
+
+void fix_insert(Node *z) {
+
+    while (z->parent->color==RED) {
+
+        if (z->parent==z->parent->parent->left) {
+
+            Node *u=z->parent->parent->right;
+
+            if (u->color==RED) { z->parent->color=BLACK; u->color=BLACK; z->parent->parent->color=RED; z=z->parent->parent; }
+
+            else {
+
+                if (z==z->parent->right) { z=z->parent; left_rotate(z); }
+
+                z->parent->color=BLACK; z->parent->parent->color=RED; right_rotate(z->parent->parent);
+
+            }
+
+        } else {
+
+            Node *u=z->parent->parent->left;
+
+            if (u->color==RED) { z->parent->color=BLACK; u->color=BLACK; z->parent->parent->color=RED; z=z->parent->parent; }
+
+            else {
+
+                if (z==z->parent->left) { z=z->parent; right_rotate(z); }
+
+                z->parent->color=BLACK; z->parent->parent->color=RED; left_rotate(z->parent->parent);
+
+            }
+
+        }
+
+    }
+
+    root->color=BLACK;
+
+}
+
+void insert(int k) {
+
+    Node *z=new_node(k), *y=NIL, *x=root;
+
+    while (x!=NIL) { y=x; if(k==x->key){free(z);return;} x=(k<x->key)?x->left:x->right; }
+
+    z->parent=y;
+
+    if(y==NIL) root=z; else if(k<y->key)y->left=z; else y->right=z;
+
+    fix_insert(z);
+
+}
+
+void inorder(Node *x) {
+
+    if(x==NIL)return;
+
+    inorder(x->left); printf("%d(%c) ",x->key,x->color==RED?'R':'B'); inorder(x->right);
+
+}
+
+Node *minimum(Node *x) { while(x!=NIL && x->left!=NIL)x=x->left; return x; }
+
+int main(void) {
+
+    NIL=malloc(sizeof *NIL); if(!NIL){perror("malloc");return 1;}
+
+    NIL->color=BLACK; NIL->left=NIL->right=NIL->parent=NIL; root=NIL;
+
+    int a[]={10,20,30,15,25,5};
+
+    for(int i=0;i<6;i++)insert(a[i]);
+
+    printf("Inorder (key/color): "); inorder(root);
+
+    printf("\nRoot: %d(%c)\n",root->key,root->color?'R':'B');
+
+    printf("Minimum key: %d\n",minimum(root)->key);
+
+    return 0;
+
+}
