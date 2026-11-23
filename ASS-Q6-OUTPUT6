@@ -1,0 +1,111 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <string.h>
+
+#define ALPHABET 26
+
+typedef struct Trie {
+
+    struct Trie *child[ALPHABET];
+
+    int is_word;
+
+    int words;
+
+} Trie;
+
+Trie *new_node(void) {
+
+    Trie *n=calloc(1,sizeof *n);
+
+    if(!n){perror("calloc");exit(1);} return n;
+
+}
+
+void insert(Trie *root,const char *s) {
+
+    Trie *p=root;
+
+    for(;*s;s++) {
+
+        if(*s<'a'||*s>'z') return;
+
+        int i=*s-'a';
+
+        if(!p->child[i])p->child[i]=new_node();
+
+        p=p->child[i];p->words++;
+
+    }
+
+    p->is_word=1;
+
+}
+
+Trie *walk(Trie *root,const char *s) {
+
+    for(;*s;s++){if(*s<'a'||*s>'z')return NULL;root=root->child[*s-'a'];if(!root)return NULL;}
+
+    return root;
+
+}
+
+int search(Trie *root,const char *s) {
+
+    Trie *p=walk(root,s);return p && p->is_word;
+
+}
+
+int prefix_count(Trie *root,const char *s) {
+
+    if(!*s)return root->words;
+
+    Trie *p=walk(root,s);return p?p->words:0;
+
+}
+
+void collect(Trie *p,char *buf,int depth) {
+
+    if(!p)return;
+
+    if(p->is_word){buf[depth]='\0';printf("%s ",buf);}
+
+    for(int i=0;i<ALPHABET;i++)if(p->child[i]){
+
+        buf[depth]='a'+i;collect(p->child[i],buf,depth+1);
+
+    }
+
+}
+
+void autocomplete(Trie *root,const char *prefix) {
+
+    Trie *p=walk(root,prefix);
+
+    if(!p){printf("(no matches)");return;}
+
+    char buf[128];strcpy(buf,prefix);collect(p,buf,(int)strlen(prefix));
+
+}
+
+void destroy(Trie *p){if(p){for(int i=0;i<ALPHABET;i++)destroy(p->child[i]);free(p);}}
+
+int main(void) {
+
+    const char *names[]={"anand","anitha","anu","arun","bala","anusuya"};
+
+    Trie *root=new_node();
+
+    for(int i=0;i<6;i++)insert(root,names[i]);
+
+    printf("Search 'anu': %s\n",search(root,"anu")?"found":"not found");
+
+    printf("Prefix count 'an': %d\n",prefix_count(root,"an"));
+
+    printf("Autocomplete 'an': ");autocomplete(root,"an");printf("\n");
+
+    destroy(root);return 0;
+
+}
