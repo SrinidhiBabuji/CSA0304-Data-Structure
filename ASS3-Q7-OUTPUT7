@@ -1,0 +1,149 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <string.h>
+
+#define CAP 10000
+
+#define MAX_WORD 128
+
+ 
+
+/* First-child / next-sibling representation.
+
+   Index 0 is the root; each node stores only one character and two indices. */
+
+typedef struct {
+
+    char ch;
+
+    unsigned child, sibling;
+
+    int is_word;
+
+} Node;
+
+static Node trie[CAP];
+
+static unsigned used=1;
+
+ 
+
+unsigned new_node(char ch) {
+
+    if(used>=CAP){fprintf(stderr,"Trie capacity exceeded\n");exit(1);}
+
+    unsigned n=used++;trie[n]=(Node){ch,0,0,0};return n;
+
+}
+
+unsigned find_child(unsigned p,char ch) {
+
+    for(unsigned q=trie[p].child;q;q=trie[q].sibling) {
+
+        if(trie[q].ch==ch)return q;
+
+        if(trie[q].ch>ch)break;
+
+    }
+
+    return 0;
+
+}
+
+int insert_word(const char *w) {
+
+    unsigned cur=0;
+
+    for(;*w;w++) {
+
+        unsigned prev=0,q=trie[cur].child;
+
+        while(q && trie[q].ch<*w){prev=q;q=trie[q].sibling;}
+
+        if(q && trie[q].ch==*w)cur=q;
+
+        else {
+
+            unsigned x=new_node(*w);trie[x].sibling=q;
+
+            if(prev)trie[prev].sibling=x;else trie[cur].child=x;
+
+            cur=x;
+
+        }
+
+    }
+
+    if(trie[cur].is_word)return 0;
+
+    trie[cur].is_word=1;return 1;
+
+}
+
+int contains(const char *w) {
+
+    unsigned cur=0;
+
+    for(;*w;w++){cur=find_child(cur,*w);if(!cur)return 0;}
+
+    return trie[cur].is_word;
+
+}
+
+void collect(unsigned node,char *buf,int depth) {
+
+    if(trie[node].is_word){buf[depth]='\0';printf("%s ",buf);}
+
+    for(unsigned q=trie[node].child;q;q=trie[q].sibling) {
+
+        buf[depth]=trie[q].ch;collect(q,buf,depth+1);
+
+    }
+
+}
+
+void autocomplete(const char *prefix) {
+
+    unsigned cur=0;char buf[MAX_WORD];int d=0;
+
+    for(;prefix[d];d++){cur=find_child(cur,prefix[d]);if(!cur){printf("(none)");return;}buf[d]=prefix[d];}
+
+    collect(cur,buf,d);
+
+}
+
+void range_walk(unsigned node,char *buf,int depth,const char *lo,const char *hi) {
+
+    if(trie[node].is_word){buf[depth]='\0';if(strcmp(buf,lo)>=0&&strcmp(buf,hi)<=0)printf("%s ",buf);}
+
+    for(unsigned q=trie[node].child;q;q=trie[q].sibling) {
+
+        buf[depth]=trie[q].ch;range_walk(q,buf,depth+1,lo,hi);
+
+    }
+
+}
+
+int main(void) {
+
+    const char *words[]={"anand","anitha","anu","arun","bala","anusuya","apple","apply"};
+
+    for(int i=0;i<8;i++)insert_word(words[i]);
+
+    char buf[MAX_WORD];
+
+    printf("Exact lookup 'anitha': %s\n",contains("anitha")?"found":"not found");
+
+    printf("Exact lookup 'anil': %s\n",contains("anil")?"found":"not found");
+
+    printf("Autocomplete 'an': ");autocomplete("an");printf("\n");
+
+    printf("Range [anitha, bala]: ");range_walk(0,buf,0,"anitha","bala");printf("\n");
+
+    printf("Nodes used (including root): %u\n",used);
+
+    return 0;
+
+}
