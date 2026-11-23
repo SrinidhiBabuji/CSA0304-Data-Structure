@@ -1,0 +1,113 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+ 
+
+typedef struct Node {
+
+    int key, height;
+
+    struct Node *left, *right;
+
+} Node;
+
+ 
+
+int h(Node *n) { return n ? n->height : 0; }
+
+int max(int a, int b) { return a > b ? a : b; }
+
+Node *make_node(int k) {
+
+    Node *n = malloc(sizeof *n);
+
+    if (!n) { perror("malloc"); exit(1); }
+
+    n->key = k; n->height = 1; n->left = n->right = NULL; return n;
+
+}
+
+int balance(Node *n) { return n ? h(n->left) - h(n->right) : 0; }
+
+Node *right_rotate(Node *y) {
+
+    Node *x = y->left, *t = x->right;
+
+    x->right = y; y->left = t;
+
+    y->height = 1 + max(h(y->left), h(y->right));
+
+    x->height = 1 + max(h(x->left), h(x->right)); return x;
+
+}
+
+Node *left_rotate(Node *x) {
+
+    Node *y = x->right, *t = y->left;
+
+    y->left = x; x->right = t;
+
+    x->height = 1 + max(h(x->left), h(x->right));
+
+    y->height = 1 + max(h(y->left), h(y->right)); return y;
+
+}
+
+Node *insert(Node *n, int key) {
+
+    if (!n) return make_node(key);
+
+    if (key < n->key) n->left = insert(n->left, key);
+
+    else if (key > n->key) n->right = insert(n->right, key);
+
+    else return n;
+
+    n->height = 1 + max(h(n->left), h(n->right));
+
+    int b = balance(n);
+
+    if (b > 1 && key < n->left->key) return right_rotate(n);       /* LL */
+
+    if (b < -1 && key > n->right->key) return left_rotate(n);      /* RR */
+
+    if (b > 1 && key > n->left->key) { n->left = left_rotate(n->left); return right_rotate(n); } /* LR */
+
+    if (b < -1 && key < n->right->key) { n->right = right_rotate(n->right); return left_rotate(n); } /* RL */
+
+    return n;
+
+}
+
+void preorder(Node *r) {
+
+    if (r) { printf("%d ", r->key); preorder(r->left); preorder(r->right); }
+
+}
+
+void inorder(Node *r) {
+
+    if (r) { inorder(r->left); printf("%d ", r->key); inorder(r->right); }
+
+}
+
+void free_tree(Node *r) { if (r) { free_tree(r->left); free_tree(r->right); free(r); } }
+
+int main(void) {
+
+    int a[] = {10, 20, 30, 40, 50, 25};
+
+    Node *root = NULL;
+
+    for (int i = 0; i < 6; i++) root = insert(root, a[i]);
+
+    printf("Preorder: "); preorder(root);
+
+    printf("\nInorder: "); inorder(root);
+
+    printf("\nHeight: %d\n", h(root));
+
+    free_tree(root); return 0;
+
+}
