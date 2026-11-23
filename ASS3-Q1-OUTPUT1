@@ -1,0 +1,201 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+ 
+
+typedef struct Node {
+
+    int key;
+
+    struct Node *left, *right;
+
+} Node;
+
+ 
+
+Node *new_node(int key) {
+
+    Node *n = (Node *)malloc(sizeof(Node));
+
+    if (!n) { perror("malloc"); exit(EXIT_FAILURE); }
+
+    n->key = key; n->left = n->right = NULL;
+
+    return n;
+
+}
+
+ 
+
+Node *insert(Node *root, int key, int *duplicate) {
+
+    if (!root) { *duplicate = 0; return new_node(key); }
+
+    if (key < root->key) root->left = insert(root->left, key, duplicate);
+
+    else if (key > root->key) root->right = insert(root->right, key, duplicate);
+
+    else *duplicate = 1;
+
+    return root;
+
+}
+
+ 
+
+int search(Node *root, int key, int *comparisons) {
+
+    int count = 0;
+
+    while (root) {
+
+        count++;
+
+        if (key == root->key) { *comparisons = count; return 1; }
+
+        root = (key < root->key) ? root->left : root->right;
+
+    }
+
+    *comparisons = count; return 0;
+
+}
+
+ 
+
+int height(Node *root) {
+
+    if (!root) return -1;
+
+    int l = height(root->left), r = height(root->right);
+
+    return 1 + (l > r ? l : r);
+
+}
+
+ 
+
+void preorder(Node *r) {
+
+    if (r) { printf("%d ", r->key); preorder(r->left); preorder(r->right); }
+
+}
+
+void inorder(Node *r) {
+
+    if (r) { inorder(r->left); printf("%d ", r->key); inorder(r->right); }
+
+}
+
+void postorder(Node *r) {
+
+    if (r) { postorder(r->left); postorder(r->right); printf("%d ", r->key); }
+
+}
+
+void levelorder(Node *r) {
+
+    if (!r) return;
+
+    Node *q[256]; int front = 0, rear = 0;
+
+    q[rear++] = r;
+
+    while (front < rear) {
+
+        Node *x = q[front++]; printf("%d ", x->key);
+
+        if (x->left) q[rear++] = x->left;
+
+        if (x->right) q[rear++] = x->right;
+
+    }
+
+}
+
+ 
+
+Node *delete_key(Node *r, int key, int *found) {
+
+    if (!r) return NULL;
+
+    if (key < r->key) r->left = delete_key(r->left, key, found);
+
+    else if (key > r->key) r->right = delete_key(r->right, key, found);
+
+    else {
+
+        *found = 1;
+
+        if (!r->left || !r->right) {
+
+            Node *child = r->left ? r->left : r->right;
+
+            free(r); return child;
+
+        }
+
+        Node *s = r->right;
+
+        while (s->left) s = s->left;
+
+        r->key = s->key;
+
+        int ignored = 0;
+
+        r->right = delete_key(r->right, s->key, &ignored);
+
+    }
+
+    return r;
+
+}
+
+void destroy(Node *r) {
+
+    if (r) { destroy(r->left); destroy(r->right); free(r); }
+
+}
+
+ 
+
+int main(void) {
+
+    int keys[] = {50, 30, 70, 20, 40, 60, 80, 65};
+
+    Node *root = NULL; int dup = 0, cmp = 0, found = 0;
+
+    for (int i = 0; i < 8; i++) root = insert(root, keys[i], &dup);
+
+    printf("Preorder: "); preorder(root);
+
+    printf("\nInorder: "); inorder(root);
+
+    printf("\nPostorder: "); postorder(root);
+
+    printf("\nLevel-order: "); levelorder(root);
+
+    printf("\nHeight: %d\n", height(root));
+
+    printf("Search 65: %s, comparisons = ", search(root, 65, &cmp) ? "found" : "not found");
+
+    printf("%d\n", cmp);
+
+    printf("Search 99: %s, comparisons = ", search(root, 99, &cmp) ? "found" : "not found");
+
+    printf("%d\n", cmp);
+
+    root = delete_key(root, 20, &found);
+
+    root = delete_key(root, 30, &found);
+
+    root = delete_key(root, 50, &found);
+
+    printf("After deleting 20, 30, 50 (preorder): "); preorder(root);
+
+    printf("\n");
+
+    destroy(root); return 0;
+
+}
