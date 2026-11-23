@@ -1,0 +1,165 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#define T 2
+
+#define MAX_KEYS (2*T-1)
+
+#define MAX_CHILD (2*T)
+
+ 
+
+typedef struct BNode {
+
+    int n, leaf, key[MAX_KEYS];
+
+    struct BNode *child[MAX_CHILD];
+
+} BNode;
+
+ 
+
+BNode *create_node(int leaf) {
+
+    BNode *x = calloc(1, sizeof *x);
+
+    if (!x) { perror("calloc"); exit(1); }
+
+    x->leaf = leaf; return x;
+
+}
+
+void traverse(BNode *x) {
+
+    if (!x) return;
+
+    int i;
+
+    for (i = 0; i < x->n; i++) {
+
+        if (!x->leaf) traverse(x->child[i]);
+
+        printf("%d ", x->key[i]);
+
+    }
+
+    if (!x->leaf) traverse(x->child[i]);
+
+}
+
+BNode *search(BNode *x, int k) {
+
+    if (!x) return NULL;
+
+    int i = 0; while (i < x->n && k > x->key[i]) i++;
+
+    if (i < x->n && k == x->key[i]) return x;
+
+    return x->leaf ? NULL : search(x->child[i], k);
+
+}
+
+void split_child(BNode *x, int i) {
+
+    BNode *y = x->child[i], *z = create_node(y->leaf);
+
+    z->n = T - 1;
+
+    for (int j = 0; j < T-1; j++) z->key[j] = y->key[j+T];
+
+    if (!y->leaf) for (int j = 0; j < T; j++) z->child[j] = y->child[j+T];
+
+    y->n = T - 1;
+
+    for (int j = x->n; j >= i+1; j--) x->child[j+1] = x->child[j];
+
+    x->child[i+1] = z;
+
+    for (int j = x->n-1; j >= i; j--) x->key[j+1] = x->key[j];
+
+    x->key[i] = y->key[T-1]; x->n++;
+
+}
+
+void insert_nonfull(BNode *x, int k) {
+
+    int i = x->n - 1;
+
+    if (x->leaf) {
+
+        while (i >= 0 && k < x->key[i]) { x->key[i+1] = x->key[i]; i--; }
+
+        if (i >= 0 && x->key[i] == k) return;
+
+        x->key[i+1] = k; x->n++;
+
+    } else {
+
+        while (i >= 0 && k < x->key[i]) i--;
+
+        i++;
+
+        if (i < x->n && x->key[i] == k) return;
+
+        if (x->child[i]->n == MAX_KEYS) {
+
+            split_child(x, i);
+
+            if (k > x->key[i]) i++;
+
+            else if (k == x->key[i]) return;
+
+        }
+
+        insert_nonfull(x->child[i], k);
+
+    }
+
+}
+
+BNode *insert(BNode *root, int k) {
+
+    if (!root) { root = create_node(1); root->key[0] = k; root->n = 1; return root; }
+
+    if (search(root, k)) return root;
+
+    if (root->n == MAX_KEYS) {
+
+        BNode *s = create_node(0); s->child[0] = root;
+
+        split_child(s, 0); int i = (k > s->key[0]);
+
+        insert_nonfull(s->child[i], k); return s;
+
+    }
+
+    insert_nonfull(root, k); return root;
+
+}
+
+void free_tree(BNode *x) {
+
+    if (!x) return;
+
+    if (!x->leaf) for (int i = 0; i <= x->n; i++) free_tree(x->child[i]);
+
+    free(x);
+
+}
+
+int main(void) {
+
+    int a[] = {10,20,5,6,12,30,7,17}; BNode *root = NULL;
+
+    for (int i = 0; i < 8; i++) root = insert(root, a[i]);
+
+    printf("Inorder traversal: "); traverse(root);
+
+    printf("\nSearch 17: %s\n", search(root,17) ? "found" : "not found");
+
+    printf("Search 99: %s\n", search(root,99) ? "found" : "not found");
+
+    free_tree(root); return 0;
+
+}
