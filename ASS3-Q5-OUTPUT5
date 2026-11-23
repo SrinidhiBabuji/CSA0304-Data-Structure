@@ -1,0 +1,123 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+ 
+
+typedef struct Node {
+
+    int key;
+
+    struct Node *left, *right, *parent;
+
+} Node;
+
+Node *make_node(int k) {
+
+    Node *n=malloc(sizeof *n);
+
+    if(!n){perror("malloc");exit(1);}
+
+    n->key=k; n->left=n->right=n->parent=NULL; return n;
+
+}
+
+void rotate_left(Node **root, Node *x) {
+
+    Node *y=x->right; if(!y)return;
+
+    x->right=y->left; if(y->left)y->left->parent=x;
+
+    y->parent=x->parent;
+
+    if(!x->parent)*root=y;
+
+    else if(x==x->parent->left)x->parent->left=y; else x->parent->right=y;
+
+    y->left=x; x->parent=y;
+
+}
+
+void rotate_right(Node **root, Node *x) {
+
+    Node *y=x->left; if(!y)return;
+
+    x->left=y->right; if(y->right)y->right->parent=x;
+
+    y->parent=x->parent;
+
+    if(!x->parent)*root=y;
+
+    else if(x==x->parent->left)x->parent->left=y; else x->parent->right=y;
+
+    y->right=x; x->parent=y;
+
+}
+
+void splay(Node **root, Node *x) {
+
+    while(x->parent) {
+
+        Node *p=x->parent, *g=p->parent;
+
+        if(!g) { if(x==p->left)rotate_right(root,p); else rotate_left(root,p); }
+
+        else if(x==p->left && p==g->left) { rotate_right(root,g); rotate_right(root,p); }
+
+        else if(x==p->right && p==g->right) { rotate_left(root,g); rotate_left(root,p); }
+
+        else if(x==p->right && p==g->left) { rotate_left(root,p); rotate_right(root,g); }
+
+        else { rotate_right(root,p); rotate_left(root,g); }
+
+    }
+
+}
+
+void insert(Node **root,int k) {
+
+    Node *p=NULL,*c=*root;
+
+    while(c){p=c;if(k==c->key){splay(root,c);return;}c=k<c->key?c->left:c->right;}
+
+    Node *n=make_node(k);n->parent=p;
+
+    if(!p)*root=n;else if(k<p->key)p->left=n;else p->right=n;
+
+    splay(root,n);
+
+}
+
+Node *access(Node **root,int k,int *visits) {
+
+    Node *c=*root,*last=NULL;*visits=0;
+
+    while(c){(*visits)++;last=c;if(k==c->key)break;c=k<c->key?c->left:c->right;}
+
+    if(last)splay(root,last);
+
+    return (last && last->key==k)?last:NULL;
+
+}
+
+void inorder(Node *r){if(r){inorder(r->left);printf("%d ",r->key);inorder(r->right);}}
+
+void free_tree(Node *r){if(r){free_tree(r->left);free_tree(r->right);free(r);}}
+
+int main(void) {
+
+    int a[]={10,20,30,40,50,25};Node *root=NULL;
+
+    for(int i=0;i<6;i++)insert(&root,a[i]);
+
+    int visits=0;Node *p=access(&root,30,&visits);
+
+    printf("Search 30: %s, nodes visited = %d\n",p?"found":"not found",visits);
+
+    printf("Root after access: %d\n",root->key);
+
+    printf("Inorder: ");inorder(root);printf("\n");
+
+    free_tree(root);return 0;
+
+}
